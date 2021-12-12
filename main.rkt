@@ -2,33 +2,36 @@
 
 (require web-server/servlet
          web-server/servlet-env
-         web-server/private/timer
-         json)
-(require "core.rkt")
-(require "config.rkt")
+         json
+         "eval/main.rkt"
+         "config.rkt"
 
-(define eval-timeout-ms 300)
+         "eval.rkt"
+         "env-manager.rkt")
 
-(define timer-manager (start-timer-manager))
+
+(define path-api-map
+  (hash
+   "eval" eval-api
+   "eval/config" eval-config-api
+   "eval/enable" eval-enable-api
+   "env/create" create-env-api
+   "env/rename" rename-env-api
+   "env/reset" reset-env-api
+   "env/remove" remove-env-api
+   "env/ids" get-env-ids-api))
+                      
+(define (route-api path req-data)
+  (let ([api (hash-ref path-api-map path)])
+    (api req-data)))
 
 (define (main-server req)
   (define req-data (bytes->jsexpr (request-post-data/raw req)))
 
-  (define eval-thread #f)
-  (define result #f)
+  (define path (hash-ref req-data 'path))
+
+  (define result (route-api path req-data))
   
-  (start-timer timer-manager (/ eval-timeout-ms 1000)
-               (λ ()
-                 (when (not (thread-dead? eval-thread))
-                   (kill-thread eval-thread)
-                   (set! result (hash 'error (format "程序执行超时(>~Ams)" eval-timeout-ms))))))
-  
-  (set! eval-thread
-        (thread
-         (λ ()
-           (set! result (eval-request req-data)))))
-  
-  (thread-wait eval-thread)
   (response
             200 #"OK"
             (current-seconds)
