@@ -36,7 +36,8 @@
   (define result (make-hash))
 
   (define value
-    (let* ([expr-raw (read (open-input-string (string-append "(begin " expr-string "\n)")))]
+    (let* ([expr-wrap (string-append "(begin " expr-string "\n)")]
+           [expr-raw (read (open-input-string expr-wrap))]
            [expr (if (is-admin-sender req-data) expr-raw (transform-safe-expr-for-eval expr-raw))])
       (env-update-variable! '__eval-expr-raw expr-raw env)
       (env-update-variable! '__eval-expr expr env)

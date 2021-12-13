@@ -1,7 +1,8 @@
 #lang racket
 
 (require web-server/private/timer
-         "eval/main.rkt")
+         "eval/main.rkt"
+         "exn.rkt")
 
 (provide eval-api
          eval-config-api
@@ -30,7 +31,10 @@
                         (with-handlers ([(const #t) (lambda (v) v)])
                           (eval-request req-data))])
                    (if (exn:fail? handled-value)
-                       (set! result (hash 'code 1 'error (exn-message handled-value)))
+                       (set! result
+                             (hash 'code 1
+                                   'error (exn-message handled-value)
+                                   'data (exn->response-data handled-value)))
                        (begin
                          (set! result handled-value)
                          (hash-set! result 'code 0)))))))
