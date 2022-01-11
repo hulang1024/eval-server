@@ -41,12 +41,16 @@
            [expr (if (is-admin-sender req-data) expr-raw (transform-safe-expr-for-eval expr-raw))])
       (env-update-variable! '__eval-expr-raw expr-raw env)
       (env-update-variable! '__eval-expr expr env)
-      (eval '(current-output-port __default-output) env)
+      (eval '(begin
+               (current-output-port __default-output)
+               (__reset-output-handler))
+            env)
       (eval expr env)))
+  
+  (hash-set! result 'output (eval '__eval-output env))
+  
+  (eval '(__reset-output-handler) env)
+  ((eval '__output-handler env) value (eval '__default-output env))
+  (hash-set! result 'value (eval '__eval-output env))
 
-  (let ([out (open-output-string)])
-    (write value out)
-    (hash-set! result 'value (get-output-string out)))
-
-  (hash-set! result 'output (get-output-string output))
   result)

@@ -32,8 +32,7 @@
 
   (define result (route-api path req-data))
   
-  (response
-            200 #"OK"
+  (response 200 #"OK"
             (current-seconds)
             APPLICATION/JSON-MIME-TYPE
             empty

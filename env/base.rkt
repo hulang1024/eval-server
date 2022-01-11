@@ -2,7 +2,9 @@
 
 (require racket/date
          "../eval/safe.rkt"
-         "user-lib.rkt")
+         "user-lib.rkt"
+         "../config.rkt"
+         "output-lib.rkt")
 
 (provide make-sandbox-env
          init-sandbox-global-env
@@ -17,6 +19,8 @@
 (define (init-sandbox-global-env env)
   (set-limit-memory 256 env)
   (env-set-constant! '__env-init-date (current-date) env)
+  (env-set-constant! '__data-dir-path data-dir-path env)
+  (init-output-lib env)
   (init-user-lib env)
   (init-safe-env env))
 

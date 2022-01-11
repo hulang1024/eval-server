@@ -8,5 +8,5 @@
 .#*.scm
 *.bak
 
-/compiled/
+**/compiled/
 /temp/
