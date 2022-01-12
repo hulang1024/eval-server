@@ -7,17 +7,27 @@
 (define __eval-output null)
 
 (define (__output-handler value port)
-  (define elem
-    (cond
-      [(image? value)
-       (hash 'type "image"
-             'path (__get-image-path value))]
-      [else
-       (define out (open-output-string))
-       (display value out)
-       (hash 'type "text"
-             'content (get-output-string out))]))
+  (cond
+    [(image? value)
+     (__eval-output-add-image #:path (__get-image-path value))]
+    [else
+     (define out (open-output-string))
+     (display value out)
+     (__eval-output-add (hash 'type "text"
+                              'content (get-output-string out)))]))
+
+
+(define (__eval-output-add elem)
   (set! __eval-output (append __eval-output (cons elem null))))
+
+
+(define (__eval-output-add-image #:path [path ""] #:url [url ""])
+  (__eval-output-add (hash 'type "image" 'path path 'url url)))
+
+
+(define (__eval-output-add-audio #:path [path ""] #:url [url ""])
+  (__eval-output-add (hash 'type "audio" 'path path 'url url)))
+
 
 (define (__reset-output-handler)
   (set! __eval-output null)
@@ -36,6 +46,6 @@
     (send bdc set-bitmap #f)
     (send bm save-file path 'png 100))
   (define filename (string-append (number->string (current-milliseconds) 16) ".png"))
-  (define path (build-path __data-dir-path "image" filename))
+  (define path (build-path __data-dir-path filename))
   (save-image image path)
   (path->string path))
