@@ -20,9 +20,9 @@
   (set-limit-memory 256 env)
   (env-set-constant! '__env-init-date (current-date) env)
   (env-set-constant! '__data-dir-path data-dir-path env)
-  (init-output-lib env)
   (init-user-lib env)
-  (init-safe-env env))
+  (init-safe-env env)
+  (init-output-lib env))
 
 (define (init-sandbox-env env)
   (set-limit-memory 32 env)

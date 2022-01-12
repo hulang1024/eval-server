@@ -11,7 +11,7 @@
     (cond
       [(image? value)
        (hash 'type "image"
-             'path (get-image-url-path value))]
+             'path (__get-image-path value))]
       [else
        (define out (open-output-string))
        (display value out)
@@ -24,18 +24,18 @@
   (port-display-handler __default-output __output-handler)
   (port-write-handler __default-output __output-handler))
   
-(define (get-image-url-path image)
+(define (__get-image-path image)
+  (define (save-image image path)
+    (define padding 12)
+    (define bm (make-bitmap (+ padding (inexact->exact (ceiling (image-width image))))
+                            (+ padding (inexact->exact (ceiling (image-height image))))))
+    (define bdc (make-object bitmap-dc% bm))
+    (send bdc set-smoothing 'aligned)
+    (send bdc erase)
+    (render-image image bdc (/ padding 2) (/ padding 2))
+    (send bdc set-bitmap #f)
+    (send bm save-file path 'png 100))
   (define filename (string-append (number->string (current-milliseconds) 16) ".png"))
   (define path (build-path __data-dir-path "image" filename))
   (save-image image path)
   (path->string path))
-
-(define (save-image image path)
-  (define bm (make-bitmap (inexact->exact (ceiling (image-width image)))
-                          (inexact->exact (ceiling (image-height image)))))
-  (define bdc (make-object bitmap-dc% bm))
-  (send bdc set-smoothing 'aligned)
-  (send bdc erase)
-  (render-image image bdc 0 0)
-  (send bdc set-bitmap #f)
-  (send bm save-file path 'png))
