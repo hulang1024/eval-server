@@ -16,41 +16,43 @@
   (define expr-string (hash-ref req-data 'expr))
 
   (define eval-env
-    (if (hash-has-key? req-data 'env_id)
-        (let* ([env-id (hash-ref req-data 'env_id)]
-               [env (get-env env-id)])
-          (if env
-              env
-              (error (format "找不到id为~A的环境" env-id))))
-        (error "未指定环境id")))
+    (cond
+      [(hash-has-key? req-data 'env_id)
+       (define env-id (hash-ref req-data 'env_id))
+       (define env (get-env env-id))
+       (if env
+           env
+           (error (format "找不到id为~A的环境" env-id)))]
+      [else (error "未指定环境id")]))
   
   (set-request-scope-variables req-data eval-env)
-  (update-safe-env eval-env (is-admin-sender req-data))
-  (eval-result expr-string eval-env req-data))
+  (update-safe-env eval-env (admin-sender? req-data))
+  (eval-result expr-string eval-env (admin-sender? req-data)))
 
-(define (eval-result expr-string env req-data)
+(define (eval-result expr-string env admin?)
   (define output (open-output-string))
-  
+
   (env-update-variable! '__default-output output env)
-
+  (eval '(begin
+           (current-output-port __default-output)
+           (__reset-output-handler))
+        env)
+  (define output-handler (eval '__output-handler env))
+  (let ([expr-in (open-input-string expr-string)])
+    (let loop ([expr-read (read expr-in)])
+      (when (not (eof-object? expr-read))
+        (define next-expr-read (read expr-in))
+        (define expr (if admin?
+                         expr-read
+                         (transform-safe-expr-for-eval expr-read)))
+        (env-update-variable! '__eval-expr-read expr-read env)
+        (env-update-variable! '__eval-expr expr env)
+        (define value (eval expr env))
+        (when (not (void? value))
+          (output-handler value output)
+          (output-handler "\n" output))
+        (loop next-expr-read))))
+  
   (define result (make-hash))
-
-  (define value
-    (let* ([expr-wrap (string-append "(begin " expr-string "\n)")]
-           [expr-raw (read (open-input-string expr-wrap))]
-           [expr (if (is-admin-sender req-data) expr-raw (transform-safe-expr-for-eval expr-raw))])
-      (env-update-variable! '__eval-expr-raw expr-raw env)
-      (env-update-variable! '__eval-expr expr env)
-      (eval '(begin
-               (current-output-port __default-output)
-               (__reset-output-handler))
-            env)
-      (eval expr env)))
-  
-  (hash-set! result 'output (eval '__eval-output env))
-  
-  (eval '(__reset-output-handler) env)
-  ((eval '__output-handler env) value (eval '__default-output env))
-  (hash-set! result 'value (eval '__eval-output env))
-
+  (hash-set! result 'output (eval '(__get-eval-output-objects) env))
   result)
