@@ -11,9 +11,11 @@ Linux 安装 Racket。
 在`config.rkt`中修改变量：
 - `admin-ids` 管理员id。  
 - `server-port` 服务端口。
+- `data-dir-path` 临时数据目录绝对路径。
+- `output-lib-path` 为`env/output.rkt`的绝对路径。
 
 ### 编写库
-`user-lib`实现初始程序库。
+`env/user-lib.rkt`实现初始程序库。
 
 ### 运行
 在DrRacket中运行 `main.rkt`。  
