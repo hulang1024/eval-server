@@ -34,6 +34,9 @@
 ; 包含不安全过程的模块
 (define unsafe-modules
   '(racket
+    r6rs
+    r5rs
+    rnrs
     net/ftp
     compatibility/package))
 
@@ -78,18 +81,20 @@
                                                      (let ([m-name (symbol->string spec-item)])
                                                        (or (string-prefix? m-name "racket")
                                                            (string-prefix? m-name "rnrs")
+                                                           (string-prefix? m-name "r5rs")
+                                                           (string-prefix? m-name "r6rs")
                                                            (string-prefix? m-name "ffi")))]
                                                     [else #f])))
                                             unsafe-modules))
                                    require-spec))))]
-             [expr-removed (repalce-top-level-form-expr pred expr-raw)])
-        expr-removed)
+             [expr-removed (repalce-top-level-form-expr pred `(begin ,expr-raw))])
+        (cadr expr-removed))
       expr-raw))
 
 (define (repalce-top-level-form-expr pred expr)  
   (if (list? expr)
       (let ([op (car expr)])
-        (if (is-top-level-form? op)
+        (if (top-level-form? op)
             (cons op
                   (map
                    (lambda (e)
@@ -113,5 +118,5 @@
      define-syntax-class
      define-for-syntax))
 
-(define (is-top-level-form? op)
+(define (top-level-form? op)
   (and (symbol? op) (member op top-level-form-ops)))
