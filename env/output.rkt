@@ -28,7 +28,8 @@
 (define (__eval-output-append-text port)
   (define end (port-position port))
   (when (> (- end __default-output-last-position) 0)
-    (define content (substring (get-output-string port) __default-output-last-position end))
+    (define s (get-output-string port))
+    (define content (substring s __default-output-last-position (min (string-length s) end)))
     (__eval-output-add-text content))
   (set! __default-output-last-position end))
 
