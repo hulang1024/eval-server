@@ -31,15 +31,6 @@
     delete-directory
     make-directory))
 
-; 包含不安全过程的模块
-(define unsafe-modules
-  '(racket
-    r6rs
-    r5rs
-    rnrs
-    net/ftp
-    compatibility/package))
-
 (define unsafe-variable-value-saves (make-hash))
 
 (define (init-safe-env env)
@@ -66,57 +57,25 @@
   (if (list? expr-raw)
       (let* ([pred (lambda (e)
                      (and (list? e)
+                          (pair? e)
                           (let ([op (car e)])
                             (or (equal? 'require op)
+                                (equal? 'local-require op)
                                 (equal? 'module op)
                                 (equal? 'planet op)
-                                (equal? 'lib op)))
-                          (pair? (cdr e))
-                          (let ([require-spec (cdr e)])
-                            (findf (λ (spec-item)
-                                     (findf (λ (unsafe-sym)
-                                              (or (equal? unsafe-sym spec-item)
-                                                  (cond
-                                                    [(symbol? spec-item)
-                                                     (let ([m-name (symbol->string spec-item)])
-                                                       (or (string-prefix? m-name "racket")
-                                                           (string-prefix? m-name "rnrs")
-                                                           (string-prefix? m-name "r5rs")
-                                                           (string-prefix? m-name "r6rs")
-                                                           (string-prefix? m-name "ffi")))]
-                                                    [else #f])))
-                                            unsafe-modules))
-                                   require-spec))))]
+                                (equal? 'lib op)))))]
              [expr-removed (repalce-top-level-form-expr pred `(begin ,expr-raw))])
         (cadr expr-removed))
       expr-raw))
 
 (define (repalce-top-level-form-expr pred expr)  
-  (if (list? expr)
+  (if (and (list? expr) (pair? expr))
       (let ([op (car expr)])
-        (if (top-level-form? op)
-            (cons op
-                  (map
-                   (lambda (e)
-                     (if (pred e)
-                         (error (format "不支持的表达式：~A" e))
-                         (repalce-top-level-form-expr pred e)))
-                   (cdr expr)))
-            expr))
+        (cons op
+              (map
+                (lambda (e)
+                  (if (pred e)
+                      (error (format "不支持的表达式：~A" e))
+                      (repalce-top-level-form-expr pred e)))
+                (cdr expr))))
       expr))
-
-(define top-level-form-ops
-  '(begin
-     module
-     ; 自己定义的宏
-     define-name-command
-     ; 内置
-     define-syntax
-     define-syntax-rule
-     define-syntax-set
-     define-syntaxes
-     define-syntax-class
-     define-for-syntax))
-
-(define (top-level-form? op)
-  (and (symbol? op) (member op top-level-form-ops)))
