@@ -19,6 +19,11 @@
   (cond
     [(image? value)
      (__eval-output-add-image #:path (__get-image-path value))]
+    [(command? value)
+     (__eval-output-add (hash
+                         'type "command"
+                         'name (command-name value)
+                         'args (command-args value)))]
     [else
      (define out (open-output-string))
      (display value out)
@@ -29,7 +34,8 @@
   (define end (port-position port))
   (when (> (- end __default-output-last-position) 0)
     (define s (get-output-string port))
-    (define content (substring s __default-output-last-position (min (string-length s) end)))
+    (set! end (min (string-length s) end))
+    (define content (substring s __default-output-last-position end))
     (__eval-output-add-text content))
   (set! __default-output-last-position end))
 
